@@ -68,16 +68,23 @@ __C.STRICTBORDERCLASS = None
 #Attribute Dictionary for Dataset
 __C.DATASET = AttrDict()
 #Cityscapes Dir Location
-__C.DATASET.CITYSCAPES_DIR = '/data/davian/segmentation/cityscapes'
+__C.DATASET.CITYSCAPES_DIR = '/home/songjian/project/RobustNet/data/cityscapes'
 #SDC Augmented Cityscapes Dir Location
 __C.DATASET.CITYSCAPES_AUG_DIR = ''
 #Mapillary Dataset Dir Location
-__C.DATASET.MAPILLARY_DIR = '/data/davian/segmentation/mapillary'
+__C.DATASET.MAPILLARY_DIR = '/home/songjian/project/RobustNet/data/mapillary'
 #GTAV, BDD100K Dataset Dir Location
-__C.DATASET.GTAV_DIR = '/data/davian/segmentation/gtav'
-__C.DATASET.BDD_DIR = '/data/davian/segmentation/bdd100k/bdd100k/seg'
+__C.DATASET.GTAV_DIR = '/home/songjian/project/RobustNet/data/GTAV'
+__C.DATASET.BDD_DIR = '/home/songjian/project/RobustNet/data/bdd-100k'
+__C.DATASET.EUROPE_DIR = '/home/songjian/project/RobustNet/data/OEM/continent_trainval/Europe'
+__C.DATASET.AFRICA_DIR = '/home/songjian/project/RobustNet/data/OEM/continent_trainval/Africa'
+__C.DATASET.ASIA_DIR = '/home/songjian/project/RobustNet/data/OEM/continent_trainval/Asia'
+__C.DATASET.CENTRALAMERICA_DIR = '/home/songjian/project/RobustNet/data/OEM/continent_trainval/CentralAmerica'
+__C.DATASET.NORTHAMERICA_DIR = '/home/songjian/project/RobustNet/data/OEM/continent_trainval/NorthAmerica'
+__C.DATASET.OCEANIA_DIR = '/home/songjian/project/RobustNet/data/OEM/continent_trainval/Oceania'
+__C.DATASET.SOUTHAMERICA_DIR = '/home/songjian/project/RobustNet/data/OEM/continent_trainval/SouthAmerica'
 #Synthia Dataset Dir Location
-__C.DATASET.SYNTHIA_DIR = '/data/davian/segmentation/synthia'
+__C.DATASET.SYNTHIA_DIR = '/home/songjian/project/RobustNet/data/synthia'
 #Kitti Dataset Dir Location
 __C.DATASET.KITTI_DIR = ''
 #SDC Augmented Kitti Dataset Dir Location

@@ -133,9 +133,12 @@ dmypy.json
 
 # logs
 logs/
+logs_debug/
+log_outofdate/
 
 # Pretrained models
 pretrained/
 
 # json files
 *.json
+data/

@@ -9,7 +9,13 @@ from datasets import camvid
 from datasets import bdd100k
 from datasets import gtav
 from datasets import nullloader
-
+from datasets import europe
+from datasets import africa
+from datasets import asia
+from datasets import centralamerica
+from datasets import northamerica
+from datasets import oceania
+from datasets import southamerica
 from datasets import multi_loader
 from datasets.sampler import DistributedSampler
 
@@ -21,7 +27,7 @@ from torch.utils.data import DataLoader, ConcatDataset
 import torch
 
 
-num_classes = 19
+num_classes = 8
 ignore_label = 255
 
 
@@ -189,6 +195,48 @@ def create_extra_val_loader(args, dataset, val_input_transform, target_transform
                                       transform=val_input_transform,
                                       target_transform=target_transform,
                                       test=False)
+    elif dataset == 'europe':
+        val_set = europe.EUROPE('val', 0,
+                                transform=val_input_transform,
+                                target_transform=target_transform,
+                                cv_split=args.cv,
+                                image_in=args.image_in)
+    elif dataset == 'africa':
+        val_set = africa.AFRICA('val', 0,
+                                  transform=val_input_transform,
+                                  target_transform=target_transform,
+                                  cv_split=args.cv,
+                                  image_in=args.image_in)
+    elif dataset == 'asia':
+        val_set = asia.ASIA('val', 0,
+                                  transform=val_input_transform,
+                                  target_transform=target_transform,
+                                  cv_split=args.cv,
+                                  image_in=args.image_in)
+    elif dataset == 'centralamerica':
+        val_set = centralamerica.CENTRALAMERICA('val', 0,
+                                  transform=val_input_transform,
+                                  target_transform=target_transform,
+                                  cv_split=args.cv,
+                                  image_in=args.image_in)
+    elif dataset == 'northamerica':
+        val_set = northamerica.NORTHAMERICA('val', 0,
+                                  transform=val_input_transform,
+                                  target_transform=target_transform,
+                                  cv_split=args.cv,
+                                  image_in=args.image_in)
+    elif dataset == 'oceania':
+        val_set = oceania.OCEANIA('val', 0,
+                                  transform=val_input_transform,
+                                  target_transform=target_transform,
+                                  cv_split=args.cv,
+                                  image_in=args.image_in)
+    elif dataset == 'southamerica':
+        val_set = southamerica.SOUTHAMERICA('val', 0,
+                                  transform=val_input_transform,
+                                  target_transform=target_transform,
+                                  cv_split=args.cv,
+                                  image_in=args.image_in)
     elif dataset == 'null_loader':
         val_set = nullloader.nullloader(args.crop_size)
     else:
@@ -246,6 +294,62 @@ def create_covstat_val_loader(args, dataset, val_input_transform, target_transfo
                             image_in=args.image_in)
     elif dataset == 'synthia':
         val_set = synthia.SynthiaAug('train', 0,
+                                  transform=val_input_transform,
+                                  color_transform=color_transform,
+                                  geometric_transform=geometric_transform,
+                                  target_transform=target_transform,
+                                  cv_split=args.cv,
+                                  image_in=args.image_in)
+    elif dataset == 'europe':
+        val_set = europe.EUROPEAug('train', 0,
+                                  transform=val_input_transform,
+                                  color_transform=color_transform,
+                                  geometric_transform=geometric_transform,
+                                  target_transform=target_transform,
+                                  cv_split=args.cv,
+                                  image_in=args.image_in)
+    elif dataset == 'africa':
+        val_set = africa.AFRICAAug('train', 0,
+                                  transform=val_input_transform,
+                                  color_transform=color_transform,
+                                  geometric_transform=geometric_transform,
+                                  target_transform=target_transform,
+                                  cv_split=args.cv,
+                                  image_in=args.image_in)
+    elif dataset == 'asia':
+        val_set = asia.ASIAAug('train', 0,
+                                  transform=val_input_transform,
+                                  color_transform=color_transform,
+                                  geometric_transform=geometric_transform,
+                                  target_transform=target_transform,
+                                  cv_split=args.cv,
+                                  image_in=args.image_in)
+    elif dataset == 'centralamerica':
+        val_set = centralamerica.CENTRALAMERICAAug('train', 0,
+                                  transform=val_input_transform,
+                                  color_transform=color_transform,
+                                  geometric_transform=geometric_transform,
+                                  target_transform=target_transform,
+                                  cv_split=args.cv,
+                                  image_in=args.image_in)
+    elif dataset == 'northamerica':
+        val_set = northamerica.NORTHAMERICAAug('train', 0,
+                                  transform=val_input_transform,
+                                  color_transform=color_transform,
+                                  geometric_transform=geometric_transform,
+                                  target_transform=target_transform,
+                                  cv_split=args.cv,
+                                  image_in=args.image_in)
+    elif dataset == 'oceania':
+        val_set = oceania.OCEANIAAug('train', 0,
+                                  transform=val_input_transform,
+                                  color_transform=color_transform,
+                                  geometric_transform=geometric_transform,
+                                  target_transform=target_transform,
+                                  cv_split=args.cv,
+                                  image_in=args.image_in)
+    elif dataset == 'southamerica':
+        val_set = southamerica.SOUTHAMERICAAug('train', 0,
                                   transform=val_input_transform,
                                   color_transform=color_transform,
                                   geometric_transform=geometric_transform,
@@ -516,7 +620,54 @@ def setup_loaders(args):
         train_sets.append(train_set)
         val_sets.append(val_set)
         val_dataset_names.append('mapillary')
+        
+    if args.dataset[0] in ['africa', 'asia', 'centralamerica', 'northamerica', 'europe', 'southamerica', 'oceania']:
+        dataset = eval(args.dataset[0])
+        bdd_mode = 'train' ## Can be trainval
+        train_joint_transform_list, train_joint_transform = get_train_joint_transform(args, dataset)
+        train_input_transform, val_input_transform = get_input_transforms(args, dataset)
+        target_transform, target_train_transform, target_aux_train_transform = get_target_transforms(args, dataset)
 
+        if args.class_uniform_pct:
+            if args.coarse_boost_classes:
+                coarse_boost_classes = \
+                    [int(c) for c in args.coarse_boost_classes.split(',')]
+            else:
+                coarse_boost_classes = None
+
+            train_set = getattr(dataset, args.dataset[0].upper()+'Uniform')(
+                bdd_mode, args.maxSkip,
+                joint_transform_list=train_joint_transform_list,
+                transform=train_input_transform,
+                target_transform=target_train_transform,
+                target_aux_transform=target_aux_train_transform,
+                dump_images=args.dump_augmentation_images,
+                cv_split=args.cv,
+                class_uniform_pct=args.class_uniform_pct,
+                class_uniform_tile=args.class_uniform_tile,
+                test=args.test_mode,
+                coarse_boost_classes=coarse_boost_classes,
+                image_in=args.image_in)
+        else:
+            train_set = getattr(dataset, args.dataset[0].upper())(
+                bdd_mode, 0,
+                joint_transform=train_joint_transform,
+                transform=train_input_transform,
+                target_transform=target_train_transform,
+                target_aux_transform=target_aux_train_transform,
+                dump_images=args.dump_augmentation_images,
+                cv_split=args.cv,
+                image_in=args.image_in)
+
+        val_set = getattr(dataset, args.dataset[0].upper())('val', 0,
+                                  transform=val_input_transform,
+                                  target_transform=target_transform,
+                                  cv_split=args.cv,
+                                  image_in=args.image_in)
+        train_sets.append(train_set)
+        val_sets.append(val_set)
+        val_dataset_names.append(args.dataset[0])
+        
     if 'null_loader' in args.dataset:
         train_set = nullloader.nullloader(args.crop_size)
         val_set = nullloader.nullloader(args.crop_size)

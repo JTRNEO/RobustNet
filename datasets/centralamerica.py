@@ -1,5 +1,5 @@
 """
-GTAV Dataset Loader
+OEM/centralamerica Dataset Loader
 """
 import logging
 import json
@@ -13,24 +13,24 @@ import torch
 import torchvision.transforms as transforms
 import datasets.uniform as uniform
 import datasets.cityscapes_labels as cityscapes_labels
-import scipy.misc as m
 
 from config import cfg
 
 trainid_to_name = cityscapes_labels.trainId2name
 id_to_trainid = cityscapes_labels.label2trainid
-trainid_to_trainid = cityscapes_labels.trainId2trainId
+trainid_to_trainid = {0:255, 1:0, 2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:7}
 color_to_trainid = cityscapes_labels.color2trainId
-num_classes = 19
+num_classes = 8
 ignore_label = 255
-root = cfg.DATASET.GTAV_DIR
-img_postfix = '.png'
+root = cfg.DATASET.CENTRALAMERICA_DIR
+img_postfix = '.tif'
 
-palette = [128, 64, 128, 244, 35, 232, 70, 70, 70, 102, 102, 156, 190, 153, 153,
-           153, 153, 153, 250, 170, 30,
-           220, 220, 0, 107, 142, 35, 152, 251, 152, 70, 130, 180, 220, 20, 60,
-           255, 0, 0, 0, 0, 142, 0, 0, 70,
-           0, 60, 100, 0, 80, 100, 0, 0, 230, 119, 11, 32]
+# palette = [128, 64, 128, 244, 35, 232, 70, 70, 70, 102, 102, 156, 190, 153, 153,
+#            153, 153, 153, 250, 170, 30,
+#            220, 220, 0, 107, 142, 35, 152, 251, 152, 70, 130, 180, 220, 20, 60,
+#            255, 0, 0, 0, 0, 142, 0, 0, 70,
+#            0, 60, 100, 0, 80, 100, 0, 0, 230, 119, 11, 32]
+palette = [128, 0, 0, 0, 255, 36, 148, 148, 148, 255, 255, 255, 34, 97, 38, 0, 69, 255, 75, 181, 73, 222, 31, 7]
 zero_pad = 256 * 3 - len(palette)
 for i in range(zero_pad):
     palette.append(0)
@@ -46,56 +46,60 @@ def colorize_mask(mask):
     return new_mask
 
 
-def add_items(items, aug_items, cities, img_path, mask_path, mask_postfix, mode, maxSkip):
+def add_items(items, aug_items, img_path, mask_path, mask_postfix, mode, maxSkip):
     """
 
     Add More items ot the list from the augmented dataset
     """
 
-    for c in cities:
-        # import pdb
-        # pdb.set_trace()
-        c_items = [name.split(img_postfix)[0] for name in
-                   os.listdir(os.path.join(img_path, c))]
-        for it in c_items:
-            item = (os.path.join(img_path, c, it + img_postfix),
-                    os.path.join(mask_path, c, it + mask_postfix))
-            # ########################################################
-            # ###### dataset augmentation ############################
-            # ########################################################
-            # if mode == "train" and maxSkip > 0:
-            #     new_img_path = os.path.join(aug_root, 'leftImg8bit_trainvaltest', 'leftImg8bit')
-            #     new_mask_path = os.path.join(aug_root, 'gtFine_trainvaltest', 'gtFine')
-            #     file_info = it.split("_")
-            #     cur_seq_id = file_info[-1]
+    if mode == "train":
+        img_path = os.path.join(img_path, 'train')
+        mask_path = os.path.join(mask_path, 'train')
+    elif mode == "val":
+        img_path = os.path.join(img_path, 'val')
+        mask_path = os.path.join(mask_path, 'val')
 
-            #     prev_seq_id = "%06d" % (int(cur_seq_id) - maxSkip)
-            #     next_seq_id = "%06d" % (int(cur_seq_id) + maxSkip)
-            #     prev_it = file_info[0] + "_" + file_info[1] + "_" + prev_seq_id
-            #     next_it = file_info[0] + "_" + file_info[1] + "_" + next_seq_id
-            #     prev_item = (os.path.join(new_img_path, c, prev_it + img_postfix),
-            #                  os.path.join(new_mask_path, c, prev_it + mask_postfix))
-            #     if os.path.isfile(prev_item[0]) and os.path.isfile(prev_item[1]):
-            #         aug_items.append(prev_item)
-            #     next_item = (os.path.join(new_img_path, c, next_it + img_postfix),
-            #                  os.path.join(new_mask_path, c, next_it + mask_postfix))
-            #     if os.path.isfile(next_item[0]) and os.path.isfile(next_item[1]):
-            #         aug_items.append(next_item)
-            items.append(item)
+    list_items = [name.split(img_postfix)[0] for name in
+                os.listdir(img_path)]
+    for it in list_items:
+        item = (os.path.join(img_path, it + img_postfix),
+                os.path.join(mask_path, it + mask_postfix))
+        # ########################################################
+        # ###### dataset augmentation ############################
+        # ########################################################
+        # if mode == "train" and maxSkip > 0:
+        #     new_img_path = os.path.join(aug_root, 'leftImg8bit_trainvaltest', 'leftImg8bit')
+        #     new_mask_path = os.path.join(aug_root, 'gtFine_trainvaltest', 'gtFine')
+        #     file_info = it.split("_")
+        #     cur_seq_id = file_info[-1]
+
+        #     prev_seq_id = "%06d" % (int(cur_seq_id) - maxSkip)
+        #     next_seq_id = "%06d" % (int(cur_seq_id) + maxSkip)
+        #     prev_it = file_info[0] + "_" + file_info[1] + "_" + prev_seq_id
+        #     next_it = file_info[0] + "_" + file_info[1] + "_" + next_seq_id
+        #     prev_item = (os.path.join(new_img_path, c, prev_it + img_postfix),
+        #                  os.path.join(new_mask_path, c, prev_it + mask_postfix))
+        #     if os.path.isfile(prev_item[0]) and os.path.isfile(prev_item[1]):
+        #         aug_items.append(prev_item)
+        #     next_item = (os.path.join(new_img_path, c, next_it + img_postfix),
+        #                  os.path.join(new_mask_path, c, next_it + mask_postfix))
+        #     if os.path.isfile(next_item[0]) and os.path.isfile(next_item[1]):
+        #         aug_items.append(next_item)
+        items.append(item)
     # items.extend(extra_items)
 
 
 def make_cv_splits(img_dir_name):
     """
-    Create splits of train/valid data.
+    Create splits of train/val data.
     A split is a lists of cities.
-    split0 is aligned with the default Cityscapes train/valid.
+    split0 is aligned with the default Cityscapes train/val.
     """
     trn_path = os.path.join(root, img_dir_name, 'train')
-    val_path = os.path.join(root, img_dir_name, 'valid')
+    val_path = os.path.join(root, img_dir_name, 'val')
 
     trn_cities = ['train/' + c for c in os.listdir(trn_path)]
-    val_cities = ['valid/' + c for c in os.listdir(val_path)]
+    val_cities = ['val/' + c for c in os.listdir(val_path)]
 
     # want reproducible randomly shuffled
     trn_cities = sorted(trn_cities)
@@ -122,7 +126,7 @@ def make_cv_splits(img_dir_name):
 
 def make_split_coarse(img_path):
     """
-    Create a train/valid split for coarse
+    Create a train/val split for coarse
     return: city split in train
     """
     all_cities = os.listdir(img_path)
@@ -146,8 +150,8 @@ def make_dataset(mode, maxSkip=0, cv_split=0):
     """
     Assemble list of images + mask files
 
-    fine -   modes: train/valid/test/trainval    cv:0,1,2
-    coarse - modes: train/valid                  cv:na
+    fine -   modes: train/val/test/trainval    cv:0,1,2
+    coarse - modes: train/val                  cv:na
 
     path examples:
     leftImg8bit_trainextra/leftImg8bit/train_extra/augsburg
@@ -160,25 +164,23 @@ def make_dataset(mode, maxSkip=0, cv_split=0):
     img_dir_name = 'images'
     img_path = os.path.join(root, img_dir_name)
     mask_path = os.path.join(root, 'labels')
-    mask_postfix = '.png'
-    cv_splits = make_cv_splits(img_dir_name)
-    # import pdb
-    # pdb.set_trace()
+    mask_postfix = '.tif'
+    # cv_splits = make_cv_splits(img_dir_name)
     if mode == 'trainval':
         modes = ['train', 'val']
     else:
         modes = [mode]
     for mode in modes:
-        logging.info('{} fine cities: '.format(mode) + str(cv_splits[cv_split][mode]))
-        add_items(items, aug_items, cv_splits[cv_split][mode], img_path, mask_path,
+        logging.info('{} fine cities: '.format(mode))
+        add_items(items, aug_items, img_path, mask_path,
                     mask_postfix, mode, maxSkip)
 
     # logging.info('Cityscapes-{}: {} images'.format(mode, len(items)))
-    logging.info('GTAV-{}: {} images'.format(mode, len(items) + len(aug_items)))
+    logging.info('Centralamerica-{}: {} images'.format(mode, len(items) + len(aug_items)))
     return items, aug_items
 
 
-class GTAV(data.Dataset):
+class CENTRALAMERICA(data.Dataset):
 
     def __init__(self, mode, maxSkip=0, joint_transform=None, sliding_crop=None,
                  transform=None, target_transform=None, target_aux_transform=None, dump_images=False,
@@ -235,30 +237,14 @@ class GTAV(data.Dataset):
     def __getitem__(self, index):
 
         img_path, mask_path = self.imgs[index]
-        img, mask = Image.open(img_path).convert('RGB'), m.imread(mask_path)
+
+        img, mask = Image.open(img_path).convert('RGB'), Image.open(mask_path)
         img_name = os.path.splitext(os.path.basename(img_path))[0]
 
-        while (img.size[1], img.size[0]) != mask[:,:,0].shape:
-            print("Error!!", img.size, mask[:,:,0].shape, img_name)
-            print("Dropping ", str(index))
-            # index = index + 1
-            if index + 1 == len(self.imgs):
-                index = 0
-            else:
-                index += 1
-            img_path, mask_path = self.imgs[index]
-            img, mask = Image.open(img_path).convert('RGB'), m.imread(mask_path)
-            img_name = os.path.splitext(os.path.basename(img_path))[0]
-
-        image_size = mask[:,:,0].shape
-        mask_copy = np.full(image_size, ignore_label, dtype=np.uint8)
-
-        for k, v in color_to_trainid.items():
-            if v != 255 and v != -1:
-                mask_copy[(mask == np.array(k))[:,:,0] & (mask == np.array(k))[:,:,1] & (mask == np.array(k))[:,:,2]] = v
-
-        # for k, v in color_to_trainid.items():
-        #     mask_copy[(mask == np.array(k))[:,:,0]] = v
+        mask = np.array(mask)
+        mask_copy = mask.copy()
+        for k, v in trainid_to_trainid.items():
+            mask_copy[mask == k] = v
 
         if self.eval_mode:
             return [transforms.ToTensor()(img)], self._eval_get_item(img, mask_copy,
@@ -296,8 +282,8 @@ class GTAV(data.Dataset):
         if self.dump_images:
             outdir = '../../dump_imgs_{}'.format(self.mode)
             os.makedirs(outdir, exist_ok=True)
-            out_img_fn = os.path.join(outdir, img_name + '.png')
-            out_msk_fn = os.path.join(outdir, img_name + '_mask.png')
+            out_img_fn = os.path.join(outdir, img_name + '.tif')
+            out_msk_fn = os.path.join(outdir, img_name + '_mask.tif')
             mask_img = colorize_mask(np.array(mask))
             img.save(out_img_fn)
             mask_img.save(out_msk_fn)
@@ -307,7 +293,7 @@ class GTAV(data.Dataset):
     def __len__(self):
         return len(self.imgs)
 
-class GTAVUniform(data.Dataset):
+class CENTRALAMERICAUniform(data.Dataset):
     """
     Please do not use this for AGG
     """
@@ -315,8 +301,7 @@ class GTAVUniform(data.Dataset):
     def __init__(self, mode, maxSkip=0, joint_transform_list=None, sliding_crop=None,
                  transform=None, target_transform=None, target_aux_transform=None, dump_images=False,
                  cv_split=None, class_uniform_pct=0.5, class_uniform_tile=1024,
-                 test=False, coarse_boost_classes=None, is_additional=False, image_in=False,
-                 extract_feature=False):
+                 test=False, coarse_boost_classes=None, image_in=False, extract_feature=False):
         self.mode = mode
         self.maxSkip = maxSkip
         self.joint_transform_list = joint_transform_list
@@ -328,7 +313,6 @@ class GTAVUniform(data.Dataset):
         self.class_uniform_pct = class_uniform_pct
         self.class_uniform_tile = class_uniform_tile
         self.coarse_boost_classes = coarse_boost_classes
-        self.is_additional = is_additional
         self.image_in = image_in
         self.extract_feature = extract_feature
 
@@ -345,20 +329,17 @@ class GTAVUniform(data.Dataset):
         assert len(self.imgs), 'Found 0 images, please check the data set'
 
         # Centroids for fine data
-        json_fn = 'gtav_{}_cv{}_tile{}.json'.format(
+        json_fn = 'centralamerica_{}_cv{}_tile{}.json'.format(
             self.mode, self.cv_split, self.class_uniform_tile)
         if os.path.isfile(json_fn):
             with open(json_fn, 'r') as json_data:
                 centroids = json.load(json_data)
-            for idx in centroids:
-                print("###### centroids", idx)
-
             self.centroids = {int(idx): centroids[idx] for idx in centroids}
         else:
-            self.centroids = uniform.class_centroids_all_from_color(
+            self.centroids = uniform.class_centroids_all(
                 self.imgs,
                 num_classes,
-                id2trainid=color_to_trainid,
+                id2trainid=trainid_to_trainid,
                 tile_size=class_uniform_tile)
             with open(json_fn, 'w') as outfile:
                 json.dump(self.centroids, outfile, indent=4)
@@ -384,30 +365,17 @@ class GTAVUniform(data.Dataset):
         uniformly samples all classes
         """
         if self.class_uniform_pct > 0:
-            if self.is_additional:
-                if cut:
-                    # after max_cu_epoch, we only fine images to fine tune
-                    self.imgs_uniform = uniform.build_epoch(self.imgs,
-                                                            self.fine_centroids,
-                                                            num_classes,
-                                                            cfg.CLASS_UNIFORM_PCT_ADD)
-                else:
-                    self.imgs_uniform = uniform.build_epoch(self.imgs + self.aug_imgs,
-                                                            self.centroids,
-                                                            num_classes,
-                                                            cfg.CLASS_UNIFORM_PCT_ADD)
+            if cut:
+                # after max_cu_epoch, we only fine images to fine tune
+                self.imgs_uniform = uniform.build_epoch(self.imgs,
+                                                        self.fine_centroids,
+                                                        num_classes,
+                                                        cfg.CLASS_UNIFORM_PCT)
             else:
-                if cut:
-                    # after max_cu_epoch, we only fine images to fine tune
-                    self.imgs_uniform = uniform.build_epoch(self.imgs,
-                                                            self.fine_centroids,
-                                                            num_classes,
-                                                            cfg.CLASS_UNIFORM_PCT)
-                else:
-                    self.imgs_uniform = uniform.build_epoch(self.imgs + self.aug_imgs,
-                                                            self.centroids,
-                                                            num_classes,
-                                                            cfg.CLASS_UNIFORM_PCT)
+                self.imgs_uniform = uniform.build_epoch(self.imgs + self.aug_imgs,
+                                                        self.centroids,
+                                                        num_classes,
+                                                        cfg.CLASS_UNIFORM_PCT)
         else:
             self.imgs_uniform = self.imgs
 
@@ -418,39 +386,14 @@ class GTAVUniform(data.Dataset):
             img_path, mask_path, centroid, class_id = elem
         else:
             img_path, mask_path = elem
-        img, mask = Image.open(img_path).convert('RGB'), m.imread(mask_path)
+        img, mask = Image.open(img_path).convert('RGB'), Image.open(mask_path)
         img_name = os.path.splitext(os.path.basename(img_path))[0]
 
-        # print(img.size, mask[:,:,0].shape)
-        while (img.size[1], img.size[0]) != mask[:,:,0].shape:
-            print("Error!!", img.size, mask[:,:,0].shape, img_name)
-            print("Dropping ", str(index))
-            # index = index + 1
-            if index + 1 == len(self.imgs):
-                index = 0
-            else:
-                index += 1
-            img_path, mask_path = self.imgs[index]
-            img, mask = Image.open(img_path).convert('RGB'), m.imread(mask_path)
-            img_name = os.path.splitext(os.path.basename(img_path))[0]
-
-        image_size = mask[:,:,0].shape
-        mask_copy = np.full(image_size, ignore_label, dtype=np.uint8)
-
-        for k, v in color_to_trainid.items():
-            if v != 255 and v != -1:
-                mask_copy[(mask == np.array(k))[:,:,0] & (mask == np.array(k))[:,:,1] & (mask == np.array(k))[:,:,2]] = v
-
-        # for k, v in color_to_trainid.items():
-        #     mask_copy[(mask == np.array(k))[:,:,0]] = v
-
+        mask = np.array(mask)
+        mask_copy = mask.copy()
+        for k, v in trainid_to_trainid.items():
+            mask_copy[mask == k] = v
         mask = Image.fromarray(mask_copy.astype(np.uint8))
-
-        # mask = np.array(mask)
-        # mask_copy = mask.copy()
-        # for k, v in trainid_to_trainid.items():
-        #     mask_copy[mask == k] = v
-        # mask = Image.fromarray(mask_copy.astype(np.uint8))
 
         # Image Transformations
         if self.extract_feature is not True:
@@ -469,8 +412,8 @@ class GTAVUniform(data.Dataset):
             outdir = '../../dump_imgs_{}'.format(self.mode)
             os.makedirs(outdir, exist_ok=True)
             dump_img_name = trainid_to_name[class_id] + '_' + img_name
-            out_img_fn = os.path.join(outdir, dump_img_name + '.png')
-            out_msk_fn = os.path.join(outdir, dump_img_name + '_mask.png')
+            out_img_fn = os.path.join(outdir, dump_img_name + '.tif')
+            out_msk_fn = os.path.join(outdir, dump_img_name + '_mask.tif')
             mask_img = colorize_mask(np.array(mask))
             img.save(out_img_fn)
             mask_img.save(out_msk_fn)
@@ -500,7 +443,7 @@ class GTAVUniform(data.Dataset):
     def __len__(self):
         return len(self.imgs_uniform)
 
-class GTAVAug(data.Dataset):
+class CENTRALAMERICAAug(data.Dataset):
 
     def __init__(self, mode, maxSkip=0, joint_transform=None, sliding_crop=None,
                  transform=None, color_transform=None, geometric_transform=None, target_transform=None, target_aux_transform=None, dump_images=False,
@@ -522,6 +465,7 @@ class GTAVAug(data.Dataset):
         self.eval_scales = None
         self.image_in = image_in
         self.extract_feature = extract_feature
+
 
         if eval_scales != None:
             self.eval_scales = [float(scale) for scale in eval_scales.split(",")]
@@ -558,30 +502,14 @@ class GTAVAug(data.Dataset):
     def __getitem__(self, index):
 
         img_path, mask_path = self.imgs[index]
-        img, mask = Image.open(img_path).convert('RGB'), m.imread(mask_path)
+
+        img, mask = Image.open(img_path).convert('RGB'), Image.open(mask_path)
         img_name = os.path.splitext(os.path.basename(img_path))[0]
 
-        while (img.size[1], img.size[0]) != mask[:,:,0].shape:
-            print("Error!!", img.size, mask[:,:,0].shape, img_name)
-            print("Dropping ", str(index))
-            # index = index + 1
-            if index + 1 == len(self.imgs):
-                index = 0
-            else:
-                index += 1
-            img_path, mask_path = self.imgs[index]
-            img, mask = Image.open(img_path).convert('RGB'), m.imread(mask_path)
-            img_name = os.path.splitext(os.path.basename(img_path))[0]
-
-        image_size = mask[:,:,0].shape
-        mask_copy = np.full(image_size, ignore_label, dtype=np.uint8)
-
-        for k, v in color_to_trainid.items():
-            if v != 255 and v != -1:
-                mask_copy[(mask == np.array(k))[:,:,0] & (mask == np.array(k))[:,:,1] & (mask == np.array(k))[:,:,2]] = v
-
-        # for k, v in color_to_trainid.items():
-        #     mask_copy[(mask == np.array(k))[:,:,0]] = v
+        mask = np.array(mask)
+        mask_copy = mask.copy()
+        for k, v in trainid_to_trainid.items():
+            mask_copy[mask == k] = v
 
         if self.eval_mode:
             return [transforms.ToTensor()(img)], self._eval_get_item(img, mask_copy,

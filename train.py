@@ -4,10 +4,11 @@ training code
 from __future__ import absolute_import
 from __future__ import division
 import argparse
+from ast import arg
 import logging
 import os
 import torch
-
+import datetime
 from config import cfg, assert_and_infer_cfg
 from utils.misc import AverageMeter, prep_experiment, evaluate_eval, fast_hist
 import datasets
@@ -187,10 +188,13 @@ if 'WORLD_SIZE' in os.environ:
 torch.cuda.set_device(args.local_rank)
 print('My Rank:', args.local_rank)
 # Initialize distributed communication
-args.dist_url = args.dist_url + str(8000 + (int(time.time()%1000))//10)
-
+# args.dist_url = args.dist_url + str(8000 + (int(time.time()%1000))//10)
+# print(args.dist_url)
+# import pdb
+# pdb.set_trace()
 torch.distributed.init_process_group(backend='nccl',
-                                     init_method=args.dist_url,
+                                    #  init_method=args.dist_url,
+                                    #  timeout = datetime.timedelta(seconds=30),
                                      world_size=args.world_size,
                                      rank=args.local_rank)
 
@@ -254,11 +258,25 @@ def main():
                                           save_pth=False)
                     net.module.set_mask_matrix()
 
-        if args.local_rank == 0:
-            print("Saving pth file...")
-            evaluate_eval(args, net, optim, scheduler, None, None, [],
-                        writer, epoch, "None", None, i, save_pth=True)
-
+        # if args.local_rank == 0:
+        #     print("Saving pth file...")
+            # evaluate_eval(args, net, optim, scheduler, None, None, [],
+            #             writer, epoch, "None", None, i, save_pth=True)
+        if args.test_mode:
+            if epoch%2 == 1 or i == args.max_iter-1:
+                for dataset, val_loader in val_loaders.items():
+                    validate(val_loader, dataset, net, criterion_val, optim, scheduler, epoch, writer, i, save_pth=False)
+                for dataset, val_loader in extra_val_loaders.items():
+                    print("Extra validating... This won't save pth file")
+                    validate(val_loader, dataset, net, criterion_val, optim, scheduler, epoch, writer, i, save_pth=False)
+        else:
+            if epoch%20 == 19 or i == args.max_iter-1:
+                for dataset, val_loader in val_loaders.items():
+                    validate(val_loader, dataset, net, criterion_val, optim, scheduler, epoch, writer, i)
+                for dataset, val_loader in extra_val_loaders.items():
+                    print("Extra validating... This won't save pth file")
+                    validate(val_loader, dataset, net, criterion_val, optim, scheduler, epoch, writer, i, save_pth=False)
+            
         if args.class_uniform_pct:
             if epoch >= args.max_cu_epoch:
                 train_obj.build_epoch(cut=True)
@@ -267,21 +285,22 @@ def main():
                 train_obj.build_epoch()
 
         epoch += 1
+        
+    print('DONE')
+    # # Validation after epochs
+    # if len(val_loaders) == 1:
+    #     # Run validation only one time - To save models
+    #     for dataset, val_loader in val_loaders.items():
+    #         validate(val_loader, dataset, net, criterion_val, optim, scheduler, epoch, writer, i)
+    # else:
+    #     if args.local_rank == 0:
+    #         print("Saving pth file...")
+    #         evaluate_eval(args, net, optim, scheduler, None, None, [],
+    #                     writer, epoch, "None", None, i, save_pth=True)
 
-    # Validation after epochs
-    if len(val_loaders) == 1:
-        # Run validation only one time - To save models
-        for dataset, val_loader in val_loaders.items():
-            validate(val_loader, dataset, net, criterion_val, optim, scheduler, epoch, writer, i)
-    else:
-        if args.local_rank == 0:
-            print("Saving pth file...")
-            evaluate_eval(args, net, optim, scheduler, None, None, [],
-                        writer, epoch, "None", None, i, save_pth=True)
-
-    for dataset, val_loader in extra_val_loaders.items():
-        print("Extra validating... This won't save pth file")
-        validate(val_loader, dataset, net, criterion_val, optim, scheduler, epoch, writer, i, save_pth=False)
+    # for dataset, val_loader in extra_val_loaders.items():
+    #     print("Extra validating... This won't save pth file")
+    #     validate(val_loader, dataset, net, criterion_val, optim, scheduler, epoch, writer, i, save_pth=False)
 
 
 def train(train_loader, net, optim, curr_epoch, writer, scheduler, max_iter):
@@ -372,23 +391,23 @@ def train(train_loader, net, optim, curr_epoch, writer, scheduler, max_iter):
             del total_loss, log_total_loss
 
             if args.local_rank == 0:
-                if i % 50 == 49:
-                    if args.visualize_feature:
-                        visualize_matrix(writer, f_cor_arr, curr_iter, '/Covariance/Feature-')
+                # if i % 50 == 49:
+                    # if args.visualize_feature:
+                    #     visualize_matrix(writer, f_cor_arr, curr_iter, '/Covariance/Feature-', 'train')
 
-                    msg = '[epoch {}], [iter {} / {} : {}], [loss {:0.6f}], [lr {:0.6f}], [time {:0.4f}]'.format(
-                        curr_epoch, i + 1, len(train_loader), curr_iter, train_total_loss.avg,
-                        optim.param_groups[-1]['lr'], time_meter.avg / args.train_batch_size)
+                msg = '[epoch {}], [iter {} / {} : {}], [loss {:0.6f}], [lr {:0.6f}], [time {:0.4f}]'.format(
+                    curr_epoch, i + 1, len(train_loader), curr_iter, train_total_loss.avg,
+                    optim.param_groups[-1]['lr'], time_meter.avg / args.train_batch_size)
 
-                    logging.info(msg)
-                    if args.use_wtloss:
-                        print("Whitening Loss", wt_loss)
+                logging.info(msg)
+                if args.use_wtloss:
+                    print("Whitening Loss", wt_loss)
 
-                    # Log tensorboard metrics for each iteration of the training phase
-                    writer.add_scalar('loss/train_loss', (train_total_loss.avg),
-                                    curr_iter)
-                    train_total_loss.reset()
-                    time_meter.reset()
+                # Log tensorboard metrics for each iteration of the training phase
+                writer.add_scalar('loss/train_loss', (train_total_loss.avg),
+                                curr_iter)
+                train_total_loss.reset()
+                time_meter.reset()
 
         curr_iter += 1
         scheduler.step()
@@ -434,11 +453,12 @@ def validate(val_loader, dataset, net, criterion, optim, scheduler, curr_epoch, 
         inputs, gt_cuda = inputs.cuda(), gt_image.cuda()
 
         with torch.no_grad():
-            if args.use_wtloss:
-                output, f_cor_arr = net(inputs, visualize=True)
-            else:
-                output = net(inputs)
-
+            # if args.use_wtloss:
+            #     output, f_cor_arr = net(inputs, visualize=True)
+            # else:
+            #     output = net(inputs)
+            output, f_cor_arr = net(inputs, visualize=True)
+            
         del inputs
 
         assert output.size()[2:] == gt_image.size()[1:]
@@ -461,7 +481,9 @@ def validate(val_loader, dataset, net, criterion, optim, scheduler, curr_epoch, 
             break
 
         # Image Dumps
-        if val_idx < 10:
+
+        
+        if val_idx < 5:
             dump_images.append([gt_image, predictions, img_names])
 
         iou_acc += fast_hist(predictions.numpy().flatten(), gt_image.numpy().flatten(),
@@ -476,8 +498,9 @@ def validate(val_loader, dataset, net, criterion, optim, scheduler, curr_epoch, 
         evaluate_eval(args, net, optim, scheduler, val_loss, iou_acc, dump_images,
                     writer, curr_epoch, dataset, None, curr_iter, save_pth=save_pth)
 
-        if args.use_wtloss:
-            visualize_matrix(writer, f_cor_arr, curr_iter, '/Covariance/Feature-')
+        # if args.use_wtloss:
+        #     visualize_matrix(writer, f_cor_arr, curr_iter, '/Covariance/Feature-', '-valid', dataset)
+        visualize_matrix(writer, f_cor_arr, curr_iter, '/Covariance/Feature-', '-valid', dataset)
 
     return val_loss.avg
 
@@ -512,12 +535,12 @@ def validate_for_cov_stat(val_loader, dataset, net, criterion, optim, scheduler,
                 logging.info("validating: %d / 100", val_idx + 1)
         del data
 
-        if val_idx >= 499:
+        if val_idx >= 100:
             return
 
 
-def visualize_matrix(writer, matrix_arr, iteration, title_str):
-    stage = 'valid'
+def visualize_matrix(writer, matrix_arr, iteration, title_str, stage, dataset):
+    stage = stage
 
     for i in range(len(matrix_arr)):
         C = matrix_arr[i].shape[1]
@@ -526,7 +549,7 @@ def visualize_matrix(writer, matrix_arr, iteration, title_str):
         matrix = torch.cat((torch.ones(1, C, C).cuda(), torch.abs(matrix - 1.0),
                         torch.abs(matrix - 1.0)), 0)
         matrix = vutils.make_grid(matrix, padding=5, normalize=False, range=(0,1))
-        writer.add_image(stage + title_str + str(i), matrix, iteration)
+        writer.add_image(dataset + stage + title_str + str(i), matrix, iteration)
 
 
 def save_feature_numpy(feature_maps, iteration):

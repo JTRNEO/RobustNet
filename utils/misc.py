@@ -6,6 +6,7 @@ import sys
 import re
 import os
 import shutil
+from tkinter import image_names
 import torch
 from datetime import datetime
 import logging
@@ -141,6 +142,7 @@ def evaluate_eval(args, net, optimizer, scheduler, val_loss, hist, dump_images, 
     Modified IOU mechanism for on-the-fly IOU calculations ( prevents memory overflow for
     large dataset) Only applies to eval/eval.py
     """
+    id2label = ["bareland", "grass", "pavement", "road", "tree", "water", "cropland", "buildings"]
     if val_loss is not None and hist is not None:
         # axis 0: gt, axis 1: prediction
         acc = np.diag(hist).sum() / hist.sum()
@@ -248,9 +250,32 @@ def evaluate_eval(args, net, optimizer, scheduler, val_loss, hist, dump_images, 
 
         if writer:
             # tensorboard logging of validation phase metrics
+            from PIL import Image
+            import PIL
+            mod = getattr(datasets, dataset_name)
+            for dump in dump_images:
+                gt, predictions, img_name = dump
+                pre = predictions[0].cpu().numpy()
+                img = Image.open(os.path.join(mod.root, 'images', 'val', img_name[0]+'.tif')).convert('RGB')
+                
+                colorized = mod.colorize_mask(pre)
+                blend = Image.blend(img.convert("RGBA"), colorized.convert("RGBA"), 0.5)
+                gt = gt[0].cpu().numpy()
+                diff = (pre!= gt)
+                diff[gt == 255] = 0
+                diffimg = Image.fromarray(diff.astype('uint8') * 255)
+                dis = PIL.ImageChops.lighter(
+                    blend,
+                    PIL.ImageOps.invert(diffimg).convert("RGBA")
+                )
+                writer.add_image(img_name[0] + 'colorized', np.array(colorized.convert("RGB")), curr_iter, dataformats='HWC')
+                writer.add_image(img_name[0] + 'composed', np.array(blend), curr_iter, dataformats='HWC')
+                writer.add_image(img_name[0] + 'difference', np.array(dis), curr_iter, dataformats='HWC')
             writer.add_scalar('{}/acc'.format(dataset_name), acc, curr_iter)
             writer.add_scalar('{}/acc_cls'.format(dataset_name), acc_cls, curr_iter)
             writer.add_scalar('{}/mean_iu'.format(dataset_name), mean_iu, curr_iter)
+            for k,v in zip(id2label, iu):
+                writer.add_scalar('{}/{}_iu'.format(dataset_name, k), v, curr_iter)
             writer.add_scalar('{}/val_loss'.format(dataset_name), val_loss.avg, curr_iter)
 
 

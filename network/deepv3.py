@@ -517,6 +517,7 @@ class DeepV3Plus(nn.Module):
                     w_arr.append(w)
                 else:
                     x = self.layer0[1](x)
+                    w_arr.append(x)
                 x = self.layer0[2](x)
                 x = self.layer0[3](x)
 

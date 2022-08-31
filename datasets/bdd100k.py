@@ -163,7 +163,7 @@ def make_dataset(mode, maxSkip=0, cv_split=0):
     img_dir_name = 'images'
     img_path = os.path.join(root, img_dir_name)
     mask_path = os.path.join(root, 'labels')
-    mask_postfix = '_train_id.png'
+    mask_postfix = '.png'
     # cv_splits = make_cv_splits(img_dir_name)
     if mode == 'trainval':
         modes = ['train', 'val']

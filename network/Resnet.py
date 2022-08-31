@@ -204,15 +204,27 @@ class Bottleneck(nn.Module):
 
         out += residual
 
-        if self.iw >= 1:
-            if self.iw == 1 or self.iw == 2:
-                out, w = self.instance_norm_layer(out)
-                w_arr.append(w)
-            else:
-                out = self.instance_norm_layer(out)
+        # if self.iw >= 1:
+        #     if self.iw == 1 or self.iw == 2:
+        #         out, w = self.instance_norm_layer(out)
+        #         w_arr.append(w)
+        #     else:
+        #         out = self.instance_norm_layer(out)
+
+        # out = self.relu(out)
+        
+        
+        if self.iw == 1 or self.iw == 2:
+            out, w = self.instance_norm_layer(out)
+            w_arr.append(w)
+        elif self.iw == 4:
+            out = self.instance_norm_layer(out)
+            w_arr.append(out)
+        elif self.iw == -1: #for baseline, if iw = 0, no features saved. if iw = -1, feature saved.
+            w_arr.append(out)
 
         out = self.relu(out)
-
+        
         return [out, w_arr]
 
 
@@ -461,7 +473,7 @@ class ResNet(nn.Module):
         self.inplanes = planes * block.expansion
         for index in range(1, blocks):
             layers.append(block(self.inplanes, planes,
-                                iw=0 if (wt_layer > 0 and index < blocks - 1) else wt_layer))
+                                iw=0 if (wt_layer != 0 and index < blocks - 1) else wt_layer))
         return nn.Sequential(*layers)
 
     def forward(self, x):

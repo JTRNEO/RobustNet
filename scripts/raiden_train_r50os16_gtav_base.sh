@@ -1,6 +1,13 @@
-#!/usr/bin/env bash
-    # Example on Cityscapes
-     python -m torch.distributed.launch --nproc_per_node=4 train.py \
+#!/bin/bash
+#$ -S /bin/bash
+#$ -cwd
+#$ -j y
+#$ -jc gtn-container_g8.24h
+#$ -ac d=nvcr-pytorch-2010,d_shm=128G
+#$ -N base
+. /home/songjian/net.sh
+# export CUDA_VISIBLE_DEVICES=0, 1, 2, 3
+/home/songjian/.conda/envs/robustnet/bin/python -m torch.distributed.launch --nproc_per_node=8 train.py \
         --dataset gtav \
         --covstat_val_dataset gtav \
         --val_dataset bdd100k cityscapes synthia mapillary \
@@ -16,16 +23,15 @@
         --scale_min 0.5 \
         --scale_max 2.0 \
         --rrotate 0 \
-        --max_iter 40000 \
-        --bs_mult 4 \
+        --max_iter 5000 \
+        --bs_mult 16 \
         --gblur \
         --color_aug 0.5 \
         --wt_reg_weight 0.0 \
         --relax_denom 0.0 \
         --cov_stat_epoch 0 \
         --wt_layer 0 0 0 0 0 0 0 \
-        --date 0623 \
-        --exp r50os16_gtav_base \
+        --date 0627SV \
+        --exp r50os16_gtav_base_bs16_g8 \
         --ckpt ./logs/ \
-        --tb_path ./logs/ \
-        # --test_mode
+        --tb_path ./logs/
